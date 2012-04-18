@@ -1,0 +1,267 @@
+<!-- 异步提交表单之前，序列化表单 -->
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title> 表单</title>	
+
+	<script src="http://a.tbcdn.cn/s/kissy/1.2.0/kissy-min.js"></script>
+	<script src="http://a.tbcdn.cn/p/header/webww-min.js?t=20120410"></script>
+	
+	<style>
+		.form-wrap {
+			width: 990px;
+			margin: 50px auto 0;
+		}
+		.hd {
+			float: left;
+			width: 100px;
+		}
+		.bd {
+			float: left;
+			width: 700px;
+		}
+		.field {
+			padding-bottom: 10px;
+		}
+		.handler {
+			padding-left: 100px;
+		}
+		.layout {
+			*zoom: 1;
+		}
+		.layout:after {
+			content: '\20';
+			display: block;
+			height: 0;
+			clear: both;
+		}
+		.default {
+			color: #999;
+		}
+	</style>
+</head>
+<body>
+	<!-- content begin-->
+	<div id="content">	
+		<div class="form-wrap">
+			<form action="data/form.htm" method="post" name="estimate" />
+				<input type="hidden" value="fb3b9e3e7f383" name="_tb_token_" />
+				<input type="hidden" value="294632987" name="userId" />
+				
+				<div class="field layout">
+					<div class="hd">
+						<label for="name">用户名</label>
+					</div>
+					<div class="bd">
+						<input type="text" name="name" id="name" />
+					</div>
+				</div>
+				
+				<div class="field layout">
+					<div class="hd">
+						<label for="gender">性别</label>
+					</div>
+					<div class="bd">
+						<input type="radio" name="gender" value="male" />男
+						<input type="radio" name="gender" value="female" />女
+					</div>
+				</div>
+				
+				<div class="field layout">
+					<div class="hd">
+						<label for="hobie">爱好</label>
+					</div>
+					<div class="bd">						
+						<input type="checkbox" name="hobie" id="sunny" value="sunny" /><label for="music">晒太阳</label>
+						<input type="checkbox" name="hobie" id="walk" value="walk" /><label for="walk">散步</label>
+						<input type="checkbox" name="hobie" id="music" value="music" /><label for="music">音乐</label>
+					</div>
+				</div>
+				
+				<div class="field">
+					<div class="layout">
+						<div class="hd">
+							<label for="season">喜欢的季节</label>
+						</div>
+						<div class="bd">
+							<select name="season" id="season">
+								<option value="">季节</option>
+								<option value="1">春</option>
+								<option value="2">夏</option>
+								<option value="3">秋</option>
+								<option value="4">冬</option>
+							</select>			
+						</div>
+					</div>
+				</div>	
+				
+				<div class="field">
+					<div class="layout">
+						<div class="hd">
+							<label for="describe">自言自语</label>
+						</div>
+						<div class="bd">
+							<textarea name='describe' id="describe" class="default"></textarea>		
+							<div class="counter">
+								<span class="J_Counter">500</span>字
+							</div>							
+						</div>
+					</div>
+				</div>
+				
+				<div class="field layout">
+					<div class="hd">
+						<label for="wangwang">旺旺</label>
+					</div>
+					<div class="bd">
+						<input type="text" name="wangwang" id="wangwang"/>
+					</div>
+				</div>
+				
+				<div class="handler">
+					<button class="J_Submit" type="submit">提交</button>
+				</div>
+				
+			</form>
+		</div>
+	</div>
+	<!-- content end-->
+	
+	<script>
+		/**
+         * 序列化表单
+         */
+(function() {	
+	var S = KISSY, DOM = S.DOM, Node = S.Node,
+		COUNTER = 500,
+		DEFAULT_CLS = 'default',
+		ADVICE_ID = '#describe',
+		ORIGINAL = '您的建议或意见会促使服务商提高产品质量。';
+	Form = S.app('Form');
+		
+	Form.add('Action', function(FM) {
+		var body = S.one('body'),
+			context = S.one('.form-wrap');
+		
+		FM.Submit = {
+			token: null,
+			
+			init : function() {
+				var self = this;
+				
+				self.bindUI();
+			},
+			
+			bindUI : function() {
+				var self = this;
+				
+				body.on('click', function(ev) {
+					
+					var target = Node(ev.target),
+						form;
+				
+					if (target.hasClass('.J_Submit')) {					
+						ev.halt();
+						form = S.get('form', context);								
+						//	checkForm(context);
+						
+						self.handleSubmit(form);					
+					}
+				});
+				
+				var counter = S.one('.J_Counter', context),
+					input = S.one(ADVICE_ID);
+			
+				counter.html(input.hasClass(DEFAULT_CLS)?  COUNTER : COUNTER - input.val().length);
+				self.count(input, counter);
+				
+				
+				input.on('focus blur', function(ev){
+					var tar = ev.target,
+						ev_type = ev.type,
+						advice = S.trim(tar.value);
+					
+					if (ev_type === 'focus'){
+						if (advice !== '' && !DOM.hasClass(tar, DEFAULT_CLS)){
+							tar.select();
+							return;
+						}
+						DOM.removeClass(tar, DEFAULT_CLS);
+						tar.value = '';
+					}
+					
+					if (ev_type === 'blur'){
+						if (advice === ''){
+							tar.value = ORIGINAL;
+							DOM.addClass(tar, DEFAULT_CLS);
+						}
+					}				
+				});
+			},
+			
+			checkForm: function() {
+			},
+			
+			handleSubmit : function(form) {
+				var self = this;
+				
+				S.io({
+					url: form['action'],
+					method: form['method'],
+					data: self._serialize(form),
+					dataType: 'json', 
+					success: function(data) {	
+						if (data.state) {
+							//do something when state:true						
+						} else {
+							//or do something when state:false
+							alert(data.errMsg);											
+						}
+					},
+					error: function(data) {
+						
+					}
+				});
+			},
+			
+			//序列化表单
+			_serialize : function(form) {
+				var rselectTextarea = /select|textarea/i,
+					rinput = /hidden|password|text/i,
+					els = form.elements,
+					rt = {};
+
+				S.each(els, function(el) {
+					if (el.name && !el.disabled &&
+							(el.checked || rselectTextarea.test(el.nodeName)
+									|| rinput.test(el.type))) {
+						rt[el.name] = DOM.val(el);
+					}
+				});
+				
+				return rt;
+			},
+
+			//字数统计
+			count : function(input, counter) {
+				input.on('keydown keyup onpropertychange', function(ev){
+					var adviceVal = input.val();
+					
+					if(adviceVal.length > COUNTER){
+						input.val(adviceVal.substr(0, COUNTER));
+						return;
+					}
+					counter.html(COUNTER - adviceVal.length);
+				});
+			}
+		};
+	});
+	
+	S.ready(function(){
+		Form.Submit.init();				
+	});		
+})();
+	</script>
+</body>
+</html>
